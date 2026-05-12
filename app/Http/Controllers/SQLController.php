@@ -13,13 +13,19 @@ class SQLController extends Controller
         $schema = $request->schema;
         $question = $request->question;
 
-        $prompt = " Eres un experto en {$motor}.
+        $prompt = "Eres un experto en {$motor}.
         
-        Esquema: {$schema}
+        Debes generar exclusivamente consultas compatibles con {$motor}.
         
-        Genera únicamente SQL válido.
-        No expliques nada.
-        No uses markdown.
+        IMPORTANTE:
+        - NO uses sintaxis de otros motores SQL.
+        - Responde únicamente con SQL válido.
+        - NO uses markdown.
+        - NO expliques nada.
+        - NO agregues texto adicional.
+        
+        Schema:
+        {$schema}
         
         Pregunta:
         {$question}";
