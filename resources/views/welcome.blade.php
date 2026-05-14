@@ -37,6 +37,9 @@
             </div>
 
             <div class="card custom-card">
+                <a href="/sql-learning" class="btn btn-upload">
+                    Aprender SQL
+                </a>
 
                 <div class="card-body p-4">
 
