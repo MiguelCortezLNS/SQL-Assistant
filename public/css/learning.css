@@ -16,6 +16,27 @@ body {
     padding-bottom: 60px;
 }
 
+.btn-return {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1f2937;
+    color: #94a3b8;
+    border: 1px solid #374151;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-return:hover {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
 .hero-section {
     text-align: center;
     margin-bottom: 2.5rem;

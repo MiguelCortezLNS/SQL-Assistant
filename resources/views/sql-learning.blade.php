@@ -27,6 +27,12 @@
 
 <div class="container main-wrapper">
 
+    <div class="mb-4">
+        <a href="{{ url('/') }}" class="btn-return">
+            &#8592; Regresar
+        </a>
+    </div>
+
     <div class="hero-section mb-5">
 
         <span class="badge-custom">
