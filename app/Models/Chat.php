@@ -6,5 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Chat extends Model
 {
-    //
+    protected $fillable = [
+        'title',
+        'type'
+    ];
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
 }
