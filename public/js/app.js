@@ -1,6 +1,5 @@
 let currentChatId = null;
 
-// ─── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {    // Restore sidebar collapsed state on desktop
     if (window.innerWidth > 768 && localStorage.getItem('sidebarCollapsed') === 'true') {
         document.getElementById('pageLayout').classList.add('sidebar-collapsed');
@@ -8,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {    // Restore sidebar coll
     setupFileReader();
 });
 
-// ─── Sidebar toggle ───────────────────────────────────────────────────────
 function toggleSidebar() {
     const isMobile = window.innerWidth <= 768;
     if (isMobile) {
@@ -26,10 +24,11 @@ function closeSidebar() {
     document.getElementById('sidebarOverlay').classList.remove('active');
 }
 
-// ─── Chat sidebar ──────────────────────────────────────────────────────────
 async function loadChats() {
     try {
-        const res = await fetch('/chats?type=sql');
+        const res = await fetch('/chats?type=sql', {
+            headers: { 'X-Browser-ID': getBrowserId() }
+        });
         const chats = await res.json();
         renderChatList(chats);
     } catch (e) {
@@ -59,7 +58,9 @@ function renderChatList(chats) {
 
 async function loadChat(chatId) {
     try {
-        const res = await fetch('/chats/' + chatId);
+        const res = await fetch('/chats/' + chatId, {
+            headers: { 'X-Browser-ID': getBrowserId() }
+        });
         const chat = await res.json();
         currentChatId = chatId;
 
@@ -97,7 +98,7 @@ async function deleteChat(e, chatId) {
     try {
         await fetch('/chats/' + chatId, {
             method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': csrfToken }
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() }
         });
         if (currentChatId === chatId) newChat();
         else loadChats();
@@ -106,7 +107,6 @@ async function deleteChat(e, chatId) {
     }
 }
 
-// ─── SQL Generation ────────────────────────────────────────────────────────
 async function generateSQL() {
     const motor    = document.getElementById('motor').value;
     const schema   = document.getElementById('schema').value;
@@ -125,7 +125,7 @@ async function generateSQL() {
         // Each generation creates its own chat entry
         const chatRes = await fetch('/chats', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() },
             body: JSON.stringify({ title: question.substring(0, 60), type: 'sql' })
         });
         const chat = await chatRes.json();
@@ -134,7 +134,7 @@ async function generateSQL() {
         // Save user message (motor + schema + question as JSON)
         await fetch('/chats/' + currentChatId + '/messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() },
             body: JSON.stringify({ role: 'user', content: JSON.stringify({ motor, schema, question }) })
         });
 
@@ -150,7 +150,7 @@ async function generateSQL() {
         // Save assistant message
         await fetch('/chats/' + currentChatId + '/messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() },
             body: JSON.stringify({ role: 'assistant', content: data.sql })
         });
 
@@ -186,7 +186,16 @@ function setupFileReader() {
     });
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+function getBrowserId() {
+    let id = localStorage.getItem('browser_id');
+    if (!id) {
+        id = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+        localStorage.setItem('browser_id', id);
+    }
+    return id;
+}
 function escapeHtml(str) {
     return String(str)
         .replace(/&/g, '&amp;')

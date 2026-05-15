@@ -1,12 +1,10 @@
 let currentChatId = null;
 
-// ─── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {    if (window.innerWidth > 768 && localStorage.getItem('sidebarCollapsed') === 'true') {
         document.getElementById('pageLayout').classList.add('sidebar-collapsed');
     }    loadChats();
 });
 
-// ─── Sidebar toggle ───────────────────────────────────────────────────────
 function toggleSidebar() {
     const isMobile = window.innerWidth <= 768;
     if (isMobile) {
@@ -24,10 +22,11 @@ function closeSidebar() {
     document.getElementById('sidebarOverlay').classList.remove('active');
 }
 
-// ─── Chat sidebar ──────────────────────────────────────────────────────────
 async function loadChats() {
     try {
-        const res = await fetch('/chats?type=learning');
+        const res = await fetch('/chats?type=learning', {
+            headers: { 'X-Browser-ID': getBrowserId() }
+        });
         const chats = await res.json();
         renderChatList(chats);
     } catch (e) {
@@ -57,7 +56,9 @@ function renderChatList(chats) {
 
 async function loadChat(chatId) {
     try {
-        const res = await fetch('/chats/' + chatId);
+        const res = await fetch('/chats/' + chatId, {
+            headers: { 'X-Browser-ID': getBrowserId() }
+        });
         const chat = await res.json();
         currentChatId = chatId;
         renderMessages(chat.messages);
@@ -84,7 +85,7 @@ async function deleteChat(e, chatId) {
     try {
         await fetch('/chats/' + chatId, {
             method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': csrfToken }
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() }
         });
         if (currentChatId === chatId) newChat();
         else loadChats();
@@ -93,7 +94,6 @@ async function deleteChat(e, chatId) {
     }
 }
 
-// ─── Messages ──────────────────────────────────────────────────────────────
 function renderMessages(messages) {
     const container = document.getElementById('chatMessages');
     container.innerHTML = '';
@@ -116,7 +116,6 @@ function appendMessage(role, content) {
     container.scrollTop = container.scrollHeight;
 }
 
-// ─── Question & Answer ─────────────────────────────────────────────────────
 async function askQuestion() {
     const question = document.getElementById('question').value.trim();
     if (!question) return;
@@ -127,7 +126,6 @@ async function askQuestion() {
 
     appendMessage('user', question);
 
-    // Thinking indicator
     const thinkingId = 'thinking-' + Date.now();
     const container  = document.getElementById('chatMessages');
     const thinking   = document.createElement('div');
@@ -138,25 +136,22 @@ async function askQuestion() {
     container.scrollTop = container.scrollHeight;
 
     try {
-        // Create chat on first message
         if (!currentChatId) {
             const chatRes = await fetch('/chats', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() },
                 body: JSON.stringify({ title: question.substring(0, 60), type: 'learning' })
             });
             const chat = await chatRes.json();
             currentChatId = chat.id;
         }
 
-        // Save user message
         await fetch('/chats/' + currentChatId + '/messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() },
             body: JSON.stringify({ role: 'user', content: question })
         });
 
-        // Call AI
         const response = await fetch('/ask-sql-question', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
@@ -167,10 +162,9 @@ async function askQuestion() {
         document.getElementById(thinkingId)?.remove();
         appendMessage('assistant', data.answer);
 
-        // Save assistant message
         await fetch('/chats/' + currentChatId + '/messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Browser-ID': getBrowserId() },
             body: JSON.stringify({ role: 'assistant', content: data.answer })
         });
 
@@ -191,7 +185,17 @@ function handleEnter(e) {
     }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+function getBrowserId() {
+    let id = localStorage.getItem('browser_id');
+    if (!id) {
+        id = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+        localStorage.setItem('browser_id', id);
+    }
+    return id;
+}
+
 function formatAnswer(text) {
     return escapeHtml(text).replace(/\n/g, '<br>');
 }
