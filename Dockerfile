@@ -8,9 +8,10 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     libzip-dev \
-    zip
+    zip \
+    libpq-dev
 
-RUN docker-php-ext-install zip
+RUN docker-php-ext-install zip pdo_pgsql pgsql
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -20,4 +21,4 @@ RUN chmod -R 777 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD touch database/database.sqlite && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
+CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT

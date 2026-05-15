@@ -7,12 +7,18 @@ use Illuminate\Http\Request;
 
 class ChatController extends Controller
 {
+
+    private function browserId(Request $request): string
+    {
+        $id = $request->header('X-Browser-ID');
+        return ($id && strlen($id) >= 8) ? $id : $request->session()->getId();
+    }
+
     public function index(Request $request)
     {
-        $type      = $request->query('type', 'sql');
-        $sessionId = $request->session()->getId();
+        $type = $request->query('type', 'sql');
 
-        $chats = Chat::forSession($sessionId)
+        $chats = Chat::forSession($this->browserId($request))
             ->where('type', $type)
             ->orderBy('updated_at', 'desc')
             ->get(['id', 'title', 'updated_at']);
@@ -22,12 +28,10 @@ class ChatController extends Controller
 
     public function store(Request $request)
     {
-        $sessionId = $request->session()->getId();
-
         $chat = Chat::create([
             'title'      => $request->input('title', 'Nuevo chat'),
             'type'       => $request->input('type', 'sql'),
-            'session_id' => $sessionId,
+            'session_id' => $this->browserId($request),
         ]);
 
         return response()->json($chat);
@@ -35,7 +39,7 @@ class ChatController extends Controller
 
     public function show(Request $request, Chat $chat)
     {
-        if ($chat->session_id !== $request->session()->getId()) {
+        if ($chat->session_id !== $this->browserId($request)) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -44,7 +48,7 @@ class ChatController extends Controller
 
     public function storeMessage(Request $request, Chat $chat)
     {
-        if ($chat->session_id !== $request->session()->getId()) {
+        if ($chat->session_id !== $this->browserId($request)) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -60,7 +64,7 @@ class ChatController extends Controller
 
     public function destroy(Request $request, Chat $chat)
     {
-        if ($chat->session_id !== $request->session()->getId()) {
+        if ($chat->session_id !== $this->browserId($request)) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
